@@ -575,6 +575,7 @@ Current shape:
         Reason
         EvidenceID
         DependencyID
+        StateBindingID
     }
 
 The fields are intentionally explicit.
@@ -618,6 +619,14 @@ Examples:
     {
       "assumption_id": "safe-to-execute",
       "reason": "ASSUMPTION_EXPIRED"
+    }
+
+### Subject-state change
+
+    {
+      "assumption_id": "safe-to-execute",
+      "reason": "SUBJECT_STATE_CHANGED",
+      "state_binding_id": "target-state"
     }
 
 ---
@@ -744,8 +753,9 @@ At a high level, current evaluation proceeds as follows:
     6. apply fresh contradiction edges
     7. apply assumption expiry
     8. apply required-evidence checks
-    9. propagate dependency invalidity
-   10. compute aggregate state
+    9. apply subject-state binding checks
+   10. propagate dependency invalidity
+   11. compute aggregate state
 
 The order exists for implementation clarity.
 
@@ -980,6 +990,7 @@ Any future EASL implementation in another language should satisfy at least these
 - stale required evidence invalidates with STALE_EVIDENCE;
 - fresh explicit contradiction invalidates with CONTRADICTED;
 - exact ValidUntil boundary invalidates with ASSUMPTION_EXPIRED;
+- a required opaque state-binding mismatch invalidates with SUBJECT_STATE_CHANGED;
 - upstream invalidity propagates with DEPENDENCY_INVALID;
 - dependency propagation follows edge direction;
 - malformed graphs fail evaluation rather than silently passing;
