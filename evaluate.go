@@ -55,6 +55,13 @@ func Evaluate(s Snapshot) (Evaluation, error) {
 	}
 
 	for _, a := range s.Assumptions {
+		if a.ValidUntil != nil && !s.At.Before(*a.ValidUntil) {
+			invalid[a.ID] = true
+			invalidations = append(invalidations, Invalidation{
+				AssumptionID: a.ID,
+				Reason:       ReasonAssumptionExpired,
+			})
+		}
 		for _, id := range a.Requires {
 			if _, ok := evidence[id]; !ok {
 				invalid[a.ID] = true
