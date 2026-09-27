@@ -76,6 +76,7 @@ The reasoning model behind EASL is documented in:
 - [Assumption Decay Doctrine](docs/assumption-decay-doctrine.md)
 - [Assumption Lifecycle](docs/assumption-lifecycle.md)
 - [Invalidation Semantics](docs/invalidation-semantics.md)
+- [Temporal Validity](docs/temporal-validity.md)
 
 The doctrine is a specification/theory layer inside EASL. It should only become a separate repository if it later develops an independent lifecycle with versioning, conformance tests, and multiple implementations.
 
