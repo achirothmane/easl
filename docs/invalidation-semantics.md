@@ -87,6 +87,7 @@ Current EASL invalidation reasons are:
     CONTRADICTED
     DEPENDENCY_INVALID
     ASSUMPTION_EXPIRED
+    SUBJECT_STATE_CHANGED
 
 Each reason has distinct semantics.
 
@@ -278,7 +279,69 @@ EASL evaluates only the resulting absolute validity boundary.
 
 ---
 
-## 8. DEPENDENCY_INVALID
+## 8. SUBJECT_STATE_CHANGED
+
+### Definition
+
+An assumption may require one or more opaque subject-state bindings through:
+
+    Assumption.RequiresStateBindings
+
+Each binding carries:
+
+    Expected
+    Observed
+
+The producer defines the domain meaning and canonicalization of those tokens.
+
+EASL only evaluates equality.
+
+If:
+
+    Expected != Observed
+
+EASL emits:
+
+    SUBJECT_STATE_CHANGED
+
+Example:
+
+    state binding:
+      id: target-state
+      expected: sha256:before
+      observed: sha256:after
+
+    assumption:
+      id: safe-to-act
+      requires_state_bindings: [target-state]
+
+Result:
+
+    safe-to-act -> SUBJECT_STATE_CHANGED(target-state)
+
+### Meaning
+
+The assumption was justified for one observed subject state, but the subject no longer matches the state to which that justification was bound.
+
+This does not require EASL to understand Kubernetes ResourceVersion, a CI head SHA, a database revision, or any other domain-specific version model.
+
+The producer owns the token.
+
+EASL owns the invariant:
+
+> **A justification bound to subject state S must not remain valid when the observed subject state is no longer S.**
+
+### Structural boundary
+
+A referenced state binding must exist and must contain non-empty expected and observed tokens.
+
+Missing or malformed binding declarations are structural evaluation errors in the current core.
+
+Unavailability of a real-world state read remains a producer/consumer concern until evidence demonstrates a reusable EASL primitive for it.
+
+---
+
+## 9. DEPENDENCY_INVALID
 
 ### Definition
 
@@ -319,7 +382,7 @@ A full transitive explanation can be reconstructed by following invalidation edg
 
 ---
 
-## 9. Multiple invalidation causes may coexist
+## 10. Multiple invalidation causes may coexist
 
 An assumption can fail for more than one reason in the same snapshot.
 
@@ -350,7 +413,7 @@ Consumers that need a single operational outcome should apply their own policy o
 
 ---
 
-## 10. No universal cause precedence
+## 11. No universal cause precedence
 
 EASL should not define a universal execution precedence such as:
 
@@ -382,7 +445,7 @@ when cause-specific behavior matters.
 
 ---
 
-## 11. Aggregate state vs cause-specific invalidations
+## 12. Aggregate state vs cause-specific invalidations
 
 Current aggregate states are:
 
@@ -415,7 +478,7 @@ The detailed causes remain authoritative for explanation.
 
 ---
 
-## 12. Invalidity propagation is directional
+## 13. Invalidity propagation is directional
 
 Dependency invalidation follows declared dependency direction.
 
@@ -437,7 +500,7 @@ This directional rule prevents accidental bidirectional invalidation.
 
 ---
 
-## 13. Propagation must terminate
+## 14. Propagation must terminate
 
 The assumption dependency graph must be acyclic.
 
@@ -456,7 +519,7 @@ This distinction should remain explicit.
 
 ---
 
-## 14. Unknown dependencies are structural errors
+## 15. Unknown dependencies are structural errors
 
 If an assumption depends on an assumption ID that is absent from the snapshot, EASL returns an error.
 
@@ -484,7 +547,7 @@ means the graph itself is malformed or incomplete.
 
 ---
 
-## 15. Structural errors are not invalidation reasons
+## 16. Structural errors are not invalidation reasons
 
 The following are currently evaluation errors, not invalidation reasons:
 
@@ -503,7 +566,7 @@ EASL should not pretend that a malformed epistemic model merely produced another
 
 ---
 
-## 16. Invalidation records should be machine-readable
+## 17. Invalidation records should be machine-readable
 
 Current shape:
 
@@ -559,7 +622,7 @@ Examples:
 
 ---
 
-## 17. Causality should remain explainable
+## 18. Causality should remain explainable
 
 A consumer should be able to build an explanation chain.
 
@@ -582,7 +645,7 @@ This explainability is a major reason to keep explicit invalidation causes inste
 
 ---
 
-## 18. Revalidation does not delete prior invalidation
+## 19. Revalidation does not delete prior invalidation
 
 A later snapshot may produce a valid result after new evidence or a new temporal boundary is supplied.
 
@@ -606,7 +669,7 @@ If history is added later, previous invalidations should remain auditable rather
 
 ---
 
-## 19. Invalidation and degradation are different
+## 20. Invalidation and degradation are different
 
 Not every problem invalidates an assumption.
 
@@ -635,7 +698,7 @@ That remains consumer policy.
 
 ---
 
-## 20. Invalidation and authorization are separate
+## 21. Invalidation and authorization are separate
 
 EASL does not issue permissions.
 
@@ -669,7 +732,7 @@ Therefore the specification must preserve this separation:
 
 ---
 
-## 21. Current EASL invalidation algorithm
+## 22. Current EASL invalidation algorithm
 
 At a high level, current evaluation proceeds as follows:
 
@@ -692,7 +755,7 @@ Multiple causes may remain visible.
 
 ---
 
-## 22. Determinism requirements
+## 23. Determinism requirements
 
 Given the same snapshot:
 
@@ -718,7 +781,7 @@ No invalidation rule should depend on hidden wall-clock time.
 
 ---
 
-## 23. Ordering of invalidation output
+## 24. Ordering of invalidation output
 
 The semantic meaning of invalidation records should not depend on slice order.
 
@@ -734,7 +797,7 @@ If deterministic invalidation ordering later becomes necessary for serialization
 
 ---
 
-## 24. Duplicate causal records
+## 25. Duplicate causal records
 
 The implementation should avoid meaningless duplicate invalidation records when the same exact cause is discovered repeatedly.
 
@@ -753,7 +816,7 @@ It is not yet required.
 
 ---
 
-## 25. Invalidation is snapshot-relative
+## 26. Invalidation is snapshot-relative
 
 An invalidation is always relative to an evaluation context.
 
@@ -771,7 +834,7 @@ This keeps invalidation compatible with revalidation.
 
 ---
 
-## 26. Failure monotonicity inside a fixed snapshot
+## 27. Failure monotonicity inside a fixed snapshot
 
 Within one immutable snapshot, invalidation should be monotonic.
 
@@ -785,7 +848,7 @@ A new snapshot is required to establish a different state.
 
 ---
 
-## 27. Dependency invalidation should preserve local provenance
+## 28. Dependency invalidation should preserve local provenance
 
 When propagation invalidates a dependent assumption, the invalidation should identify the immediate upstream dependency that caused the propagation.
 
@@ -811,7 +874,7 @@ Immediate provenance keeps the graph explanation faithful to declared edges.
 
 ---
 
-## 28. Evidence contradiction should remain explicit
+## 29. Evidence contradiction should remain explicit
 
 EASL does not infer semantic contradiction from arbitrary values.
 
@@ -837,7 +900,7 @@ EASL owns deterministic propagation of the declared contradiction.
 
 ---
 
-## 29. No implicit invalidation from unrelated evidence
+## 30. No implicit invalidation from unrelated evidence
 
 Evidence that is present but not:
 
@@ -860,7 +923,7 @@ are the explicit edges and boundaries that drive evaluation.
 
 ---
 
-## 30. Candidate future invalidation reasons
+## 31. Candidate future invalidation reasons
 
 Future consumers may justify additional reasons such as:
 
@@ -882,7 +945,7 @@ A new reason belongs in EASL only when:
 
 ---
 
-## 31. Relationship to tracker-style invalidation
+## 32. Relationship to tracker-style invalidation
 
 Aegis-EGE currently contains richer runtime invalidation logic tied to observed resource change.
 
@@ -909,7 +972,7 @@ The domain adapter should translate domain events into domain-neutral invalidati
 
 ---
 
-## 32. Conformance properties
+## 33. Conformance properties
 
 Any future EASL implementation in another language should satisfy at least these invalidation properties:
 
@@ -928,7 +991,7 @@ These properties are stronger than implementation details and can later seed ind
 
 ---
 
-## 33. What is deliberately not specified yet
+## 34. What is deliberately not specified yet
 
 This document does not yet define:
 
@@ -947,7 +1010,7 @@ Those belong only when consumer evidence demands them.
 
 ---
 
-## 34. Governing rules
+## 35. Governing rules
 
 The invalidation model can be summarized in four rules:
 
