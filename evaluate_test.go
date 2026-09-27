@@ -206,7 +206,6 @@ func TestEvaluateExpiredAssumptionInvalidatesDependents(t *testing.T) {
 	}
 }
 
-
 func TestEvaluateMatchingSubjectStateBindingRemainsValid(t *testing.T) {
 	now := time.Date(2026, 9, 27, 4, 10, 0, 0, time.UTC)
 
