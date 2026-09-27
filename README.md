@@ -99,6 +99,8 @@ This does **not** make every compatibility layer an independent full EASL implem
 
 Early core contract. The next capabilities should be extracted only when real consumers require them. Architecture follows evidence.
 
+Subject-state binding is now an **earned primitive**: it has independent consumers in Aegis-EGE and CI Retry Gate, shared conformance vectors, and a live external mutation proof. See [Subject-State Binding Consumer Proof](docs/subject-state-binding-consumer-proof.md).
+
 ## Doctrine
 
 The reasoning model behind EASL is documented in:
