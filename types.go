@@ -8,6 +8,9 @@ type EvidenceID string
 // AssumptionID is a stable identifier for one assumption.
 type AssumptionID string
 
+// StateBindingID is a stable identifier for one opaque subject-state binding.
+type StateBindingID string
+
 // State is the aggregate epistemic state of a snapshot.
 type State string
 
@@ -31,11 +34,12 @@ const (
 type InvalidationReason string
 
 const (
-	ReasonMissingEvidence   InvalidationReason = "MISSING_EVIDENCE"
-	ReasonStaleEvidence     InvalidationReason = "STALE_EVIDENCE"
-	ReasonContradicted      InvalidationReason = "CONTRADICTED"
-	ReasonDependencyInvalid InvalidationReason = "DEPENDENCY_INVALID"
-	ReasonAssumptionExpired InvalidationReason = "ASSUMPTION_EXPIRED"
+	ReasonMissingEvidence     InvalidationReason = "MISSING_EVIDENCE"
+	ReasonStaleEvidence       InvalidationReason = "STALE_EVIDENCE"
+	ReasonContradicted        InvalidationReason = "CONTRADICTED"
+	ReasonDependencyInvalid   InvalidationReason = "DEPENDENCY_INVALID"
+	ReasonAssumptionExpired   InvalidationReason = "ASSUMPTION_EXPIRED"
+	ReasonSubjectStateChanged InvalidationReason = "SUBJECT_STATE_CHANGED"
 )
 
 // Evidence is an externally produced observation. EASL does not interpret
@@ -53,23 +57,34 @@ type Evidence struct {
 	Contradicts []AssumptionID `json:"contradicts,omitempty"`
 }
 
-// Assumption declares the evidence and upstream assumptions that must remain
-// valid for this assumption to remain valid.
+// StateBinding compares the opaque subject state that justified an assumption
+// with the currently observed state. EASL does not interpret the token; the
+// producer owns canonicalization and domain meaning.
+type StateBinding struct {
+	ID       StateBindingID `json:"id"`
+	Expected string         `json:"expected"`
+	Observed string         `json:"observed"`
+}
+
+// Assumption declares the evidence, subject-state bindings, and upstream
+// assumptions that must remain valid for this assumption to remain valid.
 type Assumption struct {
 	ID AssumptionID `json:"id"`
 
-	Requires   []EvidenceID   `json:"requires,omitempty"`
-	DependsOn  []AssumptionID `json:"depends_on,omitempty"`
-	ValidUntil *time.Time     `json:"valid_until,omitempty"`
+	Requires              []EvidenceID     `json:"requires,omitempty"`
+	RequiresStateBindings []StateBindingID `json:"requires_state_bindings,omitempty"`
+	DependsOn             []AssumptionID   `json:"depends_on,omitempty"`
+	ValidUntil            *time.Time       `json:"valid_until,omitempty"`
 }
 
 // Snapshot is the deterministic input to Evaluate. At is supplied by the
 // caller so replaying the same snapshot at the same instant returns the same
 // result.
 type Snapshot struct {
-	At          time.Time    `json:"at"`
-	Evidence    []Evidence   `json:"evidence,omitempty"`
-	Assumptions []Assumption `json:"assumptions,omitempty"`
+	At            time.Time      `json:"at"`
+	Evidence      []Evidence     `json:"evidence,omitempty"`
+	StateBindings []StateBinding `json:"state_bindings,omitempty"`
+	Assumptions   []Assumption   `json:"assumptions,omitempty"`
 }
 
 // Contradiction is an active contradiction edge at evaluation time.
@@ -80,10 +95,11 @@ type Contradiction struct {
 
 // Invalidation records a machine-readable reason an assumption is invalid.
 type Invalidation struct {
-	AssumptionID AssumptionID       `json:"assumption_id"`
-	Reason       InvalidationReason `json:"reason"`
-	EvidenceID   EvidenceID         `json:"evidence_id,omitempty"`
-	DependencyID AssumptionID       `json:"dependency_id,omitempty"`
+	AssumptionID   AssumptionID       `json:"assumption_id"`
+	Reason         InvalidationReason `json:"reason"`
+	EvidenceID     EvidenceID         `json:"evidence_id,omitempty"`
+	DependencyID   AssumptionID       `json:"dependency_id,omitempty"`
+	StateBindingID StateBindingID     `json:"state_binding_id,omitempty"`
 }
 
 // Evaluation is the domain-neutral epistemic state consumed by downstream

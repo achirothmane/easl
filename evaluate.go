@@ -23,6 +23,20 @@ func Evaluate(s Snapshot) (Evaluation, error) {
 		stale[e.ID] = e.ExpiresAt != nil && !s.At.Before(*e.ExpiresAt)
 	}
 
+	stateBindings := map[StateBindingID]StateBinding{}
+	for _, binding := range s.StateBindings {
+		if binding.ID == "" {
+			return Evaluation{}, fmt.Errorf("easl: empty state binding id")
+		}
+		if binding.Expected == "" || binding.Observed == "" {
+			return Evaluation{}, fmt.Errorf("easl: state binding %q requires expected and observed tokens", binding.ID)
+		}
+		if _, ok := stateBindings[binding.ID]; ok {
+			return Evaluation{}, fmt.Errorf("easl: duplicate state binding id %q", binding.ID)
+		}
+		stateBindings[binding.ID] = binding
+	}
+
 	assumptions := map[AssumptionID]Assumption{}
 	for _, a := range s.Assumptions {
 		if a.ID == "" {
@@ -69,6 +83,20 @@ func Evaluate(s Snapshot) (Evaluation, error) {
 			} else if stale[id] {
 				invalid[a.ID] = true
 				invalidations = append(invalidations, Invalidation{AssumptionID: a.ID, Reason: ReasonStaleEvidence, EvidenceID: id})
+			}
+		}
+		for _, id := range a.RequiresStateBindings {
+			binding, ok := stateBindings[id]
+			if !ok {
+				return Evaluation{}, fmt.Errorf("easl: assumption %q requires unknown state binding %q", a.ID, id)
+			}
+			if binding.Expected != binding.Observed {
+				invalid[a.ID] = true
+				invalidations = append(invalidations, Invalidation{
+					AssumptionID:   a.ID,
+					Reason:         ReasonSubjectStateChanged,
+					StateBindingID: id,
+				})
 			}
 		}
 	}

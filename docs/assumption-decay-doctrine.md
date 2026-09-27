@@ -48,7 +48,7 @@ does not imply:
 
     Valid(A, t) = true
 
-Validity at time t must be re-established from the state of its supporting evidence, explicit temporal boundary, contradictions, and dependency graph.
+Validity at time t must be re-established from the state of its supporting evidence, explicit temporal boundary, subject-state bindings, contradictions, and dependency graph.
 
 ---
 
@@ -94,7 +94,21 @@ An assumption depends on another assumption that is no longer valid.
 
 The invalidity propagates even when no direct evidence about the downstream assumption has changed.
 
-### 3.5 Structurally indeterminate
+### 3.5 Subject-state changed
+
+A justification may be bound to an opaque representation of the subject state that was observed when the assumption became usable.
+
+If the currently observed state token no longer matches the token to which the assumption was bound, the old justification is no longer usable.
+
+This says:
+
+> The assumption was justified for a different subject state.
+
+It does not require EASL to understand what the token means.
+
+Kubernetes resource versions, CI run/head state, database revisions, or composite digests remain domain concerns. Producers canonicalize them into opaque state-binding tokens.
+
+### 3.6 Structurally indeterminate
 
 The system cannot evaluate the assumption graph safely because the input is malformed, cyclic, references unknown assumptions, or otherwise violates the contract.
 
@@ -118,6 +132,8 @@ The effective validity of an assumption is constrained by several independent me
             +
     Dependency validity
             +
+    Subject-state binding
+            +
     Structural evaluability
             ↓
     Current epistemic state
@@ -132,6 +148,7 @@ For example:
     contradicted assumption  -> hard block
     missing evidence         -> gather more evidence
     dependency invalid       -> recompute dependent state
+    subject state changed    -> revalidate against current state
     malformed graph          -> fail closed / escalate
 
 Those mappings are **consumer policy**, not EASL policy.
@@ -288,6 +305,7 @@ Given the same:
 - contradiction edges;
 - assumption graph;
 - assumption validity boundaries;
+- opaque subject-state bindings;
 
 EASL should return the same epistemic evaluation.
 
@@ -346,6 +364,7 @@ The intended layering is:
       freshness
       assumption lifetime
       contradiction
+      subject-state binding
       dependency invalidation
             ↓
     Domain policy / governance
@@ -390,6 +409,10 @@ EASL does not decide ALLOW, BLOCK, or ESCALATE.
 
 Temporal evaluation uses caller-supplied Snapshot.At, never hidden wall-clock time.
 
+### Invariant 9 — justification is state-bound when declared
+
+If an assumption requires a subject-state binding, the expected and currently observed opaque tokens must match. A mismatch invalidates the old justification rather than silently carrying it across a changed world state.
+
 ---
 
 ## 14. What the current implementation supports
@@ -400,6 +423,8 @@ The current EASL core implements:
     Assumption.ValidUntil
     Evidence -> explicit contradiction edges
     Assumption.Requires
+    StateBinding.Expected / StateBinding.Observed
+    Assumption.RequiresStateBindings
     Assumption.DependsOn
     dependency invalidation propagation
     deterministic Snapshot.At evaluation
@@ -423,6 +448,7 @@ Current invalidation causes include:
     CONTRADICTED
     DEPENDENCY_INVALID
     ASSUMPTION_EXPIRED
+    SUBJECT_STATE_CHANGED
 
 The doctrine is intentionally deeper than the current implementation, but additions should be earned by concrete consumers rather than implemented speculatively.
 
@@ -504,7 +530,7 @@ Until then, keeping the doctrine in easl/docs/ prevents premature fragmentation.
 
 The doctrine can be summarized in one rule:
 
-> **An assumption remains usable only while the evidence, time boundary, and dependency structure that justify it remain valid at the moment it is consumed.**
+> **An assumption remains usable only while the evidence, time boundary, bound subject state, and dependency structure that justify it remain valid at the moment it is consumed.**
 
 Or, more compactly:
 

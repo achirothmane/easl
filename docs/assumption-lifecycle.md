@@ -48,7 +48,10 @@ The conceptual lifecycle is:
     │               │                │                  │
  EXPIRED       CONTRADICTED      UNSUPPORTED      DEPENDENCY_INVALID
     │               │                │                  │
-    └───────────────┴────────────────┴──────────────────┘
+    └───────────────┬────────────────┴──────────────────┘
+                    │
+          SUBJECT_STATE_CHANGED
+                    │
                          ↓
                       INVALID
                          ↓
@@ -71,6 +74,7 @@ In the current EASL model:
     Assumption {
         ID
         Requires
+        RequiresStateBindings
         DependsOn
         ValidUntil
     }
@@ -96,6 +100,7 @@ An assumption is **evaluated** when EASL processes it inside a snapshot containi
 
 - an explicit evaluation time;
 - current evidence;
+- current opaque subject-state bindings;
 - the assumption graph;
 - temporal validity boundaries.
 
@@ -119,6 +124,7 @@ At minimum, this means:
 - required evidence is fresh;
 - no fresh evidence explicitly contradicts the assumption;
 - the assumption has not reached its validity boundary;
+- every required subject-state binding still matches;
 - all declared upstream assumptions remain valid;
 - the assumption graph is structurally evaluable.
 
@@ -129,6 +135,7 @@ Conceptually:
         AND RequiredEvidenceFresh(A, t)
         AND NOT Contradicted(A, t)
         AND TemporallyValid(A, t)
+        AND StateBindingsMatch(A)
         AND DependenciesValid(A, t)
         AND GraphEvaluable(t)
 
@@ -244,7 +251,34 @@ That decision remains outside EASL.
 
 ---
 
-## 10. Dependency-invalid
+## 10. Subject-state changed
+
+An assumption becomes **state-invalid** when it declares a required subject-state binding and the currently observed opaque state token no longer matches the expected token.
+
+Example:
+
+    target-state expected = sha256:before
+    target-state observed = sha256:after
+
+    safe-to-act requires target-state
+
+Result:
+
+    safe-to-act -> SUBJECT_STATE_CHANGED
+
+The producer owns the meaning and canonicalization of the token.
+
+EASL owns only the equality invariant.
+
+This lifecycle condition means:
+
+> the old justification described a different subject state and must be re-earned before it can be used again.
+
+It does not imply that the changed state is unsafe by itself.
+
+---
+
+## 11. Dependency-invalid
 
 An assumption becomes **dependency-invalid** when one of its declared upstream assumptions is invalid.
 
@@ -277,7 +311,7 @@ Deeper causal provenance may be extended later if real consumers require it.
 
 ---
 
-## 11. Invalid
+## 12. Invalid
 
 **Invalid** is the resulting lifecycle condition when an assumption can no longer be justified under the current snapshot.
 
@@ -287,6 +321,7 @@ Multiple causes can produce invalidity:
 - contradiction;
 - missing evidence;
 - stale required evidence;
+- changed required subject state;
 - invalid dependency.
 
 In current EASL output, an invalid assumption appears in:
@@ -305,7 +340,7 @@ when one or more assumptions are invalid.
 
 ---
 
-## 12. Structurally indeterminate
+## 13. Structurally indeterminate
 
 Not every failure should be represented as an invalid assumption.
 
@@ -316,6 +351,8 @@ Examples include:
 - duplicate evidence identifiers;
 - duplicate assumption identifiers;
 - unknown assumption dependencies;
+- duplicate or malformed state bindings;
+- unknown required state bindings;
 - dependency cycles;
 - contradiction edges targeting unknown assumptions;
 - zero evaluation time.
@@ -336,7 +373,7 @@ A downstream consumer such as Aegis-EGE can then fail closed or escalate accordi
 
 ---
 
-## 13. Degraded snapshot vs invalid assumption
+## 14. Degraded snapshot vs invalid assumption
 
 Current EASL also has an aggregate state:
 
@@ -361,7 +398,7 @@ A consumer may still choose to treat degraded state conservatively.
 
 ---
 
-## 14. Re-evaluation
+## 15. Re-evaluation
 
 An invalid or expired assumption is not repaired by changing its old evaluation retroactively.
 
@@ -383,7 +420,7 @@ The new result supersedes the old result for current decision-making, but it doe
 
 ---
 
-## 15. Revalidation
+## 16. Revalidation
 
 **Revalidation** is the successful outcome of re-evaluation after a previous justification became unusable.
 
@@ -410,7 +447,7 @@ The current core does not yet persist these transitions.
 
 ---
 
-## 16. No resurrection by time reversal
+## 17. No resurrection by time reversal
 
 An expired assumption should not become valid merely because a caller chooses an earlier wall-clock time during normal operation.
 
@@ -432,7 +469,7 @@ They refer to different evaluation times.
 
 ---
 
-## 17. Lifecycle and evidence lifetime are separate
+## 18. Lifecycle and evidence lifetime are separate
 
 Evidence has its own freshness lifecycle.
 
@@ -472,7 +509,7 @@ must invalidate the assumption.
 
 ---
 
-## 18. Lifecycle and consumer policy are separate
+## 19. Lifecycle and consumer policy are separate
 
 EASL may determine:
 
@@ -510,7 +547,7 @@ For Aegis-EGE today:
 
 ---
 
-## 19. Current lifecycle mapping to EASL v0
+## 20. Current lifecycle mapping to EASL v0
 
 The current implementation can be mapped as follows:
 
@@ -523,6 +560,7 @@ The current implementation can be mapped as follows:
 | Contradicted | ReasonContradicted |
 | Unsupported: missing | ReasonMissingEvidence |
 | Unsupported: stale | ReasonStaleEvidence |
+| Subject-state changed | ReasonSubjectStateChanged |
 | Dependency-invalid | ReasonDependencyInvalid |
 | Invalid | InvalidatedAssumptions + Invalidations |
 | Structurally indeterminate | Evaluate returns error |
@@ -533,23 +571,23 @@ This table describes the current implementation, not a commitment that every con
 
 ---
 
-## 20. Transition invariants
+## 21. Transition invariants
 
 The following lifecycle invariants should hold.
 
-### 20.1 Declaration does not imply justification
+### 21.1 Declaration does not imply justification
 
 Creating an Assumption object must not automatically make it valid.
 
-### 20.2 Evaluation is time-relative
+### 21.2 Evaluation is time-relative
 
 The same assumption may produce different states at different Snapshot.At values.
 
-### 20.3 Invalidity is causal
+### 21.3 Invalidity is causal
 
 Every invalidated assumption should have at least one machine-readable invalidation cause.
 
-### 20.4 Expiry is monotonic within one timeline
+### 21.4 Expiry is monotonic within one timeline
 
 For a fixed ValidUntil, once:
 
@@ -557,21 +595,25 @@ For a fixed ValidUntil, once:
 
 later snapshot times must also treat the assumption as expired unless a new assumption justification is created.
 
-### 20.5 Dependency invalidation propagates downstream
+### 21.5 Subject-state drift invalidates bound justification
+
+If an assumption requires a state binding and its expected and observed opaque tokens differ, the old justification cannot remain valid.
+
+### 21.6 Dependency invalidation propagates downstream
 
 An invalid upstream assumption cannot be silently ignored by a declared dependent assumption.
 
-### 20.6 Revalidation creates a new evaluation
+### 21.7 Revalidation creates a new evaluation
 
 A fresh valid result does not rewrite the previous invalid result.
 
-### 20.7 Structural errors do not become fake lifecycle states
+### 21.8 Structural errors do not become fake lifecycle states
 
 Malformed input should remain an evaluation error unless there is a concrete reason to model it differently.
 
 ---
 
-## 21. What is not yet implemented
+## 22. What is not yet implemented
 
 This lifecycle document does not imply that EASL currently persists:
 
@@ -590,7 +632,7 @@ The specification may describe the model before the implementation stores every 
 
 ---
 
-## 22. Candidate future primitives
+## 23. Candidate future primitives
 
 If consumer evidence eventually justifies them, lifecycle-related primitives may include:
 
@@ -608,7 +650,7 @@ They should be added only when they reduce ambiguity or enable a real operationa
 
 ---
 
-## 23. Relationship to other EASL documents
+## 24. Relationship to other EASL documents
 
 This document answers:
 
@@ -627,7 +669,7 @@ The documents should remain separable so that lifecycle, invalidation, and tempo
 
 ---
 
-## 24. Governing lifecycle rule
+## 25. Governing lifecycle rule
 
 The lifecycle can be reduced to one operational statement:
 
