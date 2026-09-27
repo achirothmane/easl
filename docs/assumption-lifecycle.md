@@ -575,19 +575,19 @@ This table describes the current implementation, not a commitment that every con
 
 The following lifecycle invariants should hold.
 
-### 20.1 Declaration does not imply justification
+### 21.1 Declaration does not imply justification
 
 Creating an Assumption object must not automatically make it valid.
 
-### 20.2 Evaluation is time-relative
+### 21.2 Evaluation is time-relative
 
 The same assumption may produce different states at different Snapshot.At values.
 
-### 20.3 Invalidity is causal
+### 21.3 Invalidity is causal
 
 Every invalidated assumption should have at least one machine-readable invalidation cause.
 
-### 20.4 Expiry is monotonic within one timeline
+### 21.4 Expiry is monotonic within one timeline
 
 For a fixed ValidUntil, once:
 
