@@ -34,9 +34,9 @@ const (
 type InvalidationReason string
 
 const (
-	ReasonMissingEvidence   InvalidationReason = "MISSING_EVIDENCE"
-	ReasonStaleEvidence     InvalidationReason = "STALE_EVIDENCE"
-	ReasonContradicted      InvalidationReason = "CONTRADICTED"
+	ReasonMissingEvidence     InvalidationReason = "MISSING_EVIDENCE"
+	ReasonStaleEvidence       InvalidationReason = "STALE_EVIDENCE"
+	ReasonContradicted        InvalidationReason = "CONTRADICTED"
 	ReasonDependencyInvalid   InvalidationReason = "DEPENDENCY_INVALID"
 	ReasonAssumptionExpired   InvalidationReason = "ASSUMPTION_EXPIRED"
 	ReasonSubjectStateChanged InvalidationReason = "SUBJECT_STATE_CHANGED"
