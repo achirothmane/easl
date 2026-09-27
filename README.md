@@ -68,3 +68,12 @@ When evidence is stale, contradicted, missing, an assumption expires, or an upst
 ## Status
 
 Early core contract. The next capabilities should be extracted only when real consumers require them. Architecture follows evidence.
+
+## Doctrine
+
+The reasoning model behind EASL is documented in:
+
+- [Assumption Decay Doctrine](docs/assumption-decay-doctrine.md)
+
+The doctrine is a specification/theory layer inside EASL. It should only become a separate repository if it later develops an independent lifecycle with versioning, conformance tests, and multiple implementations.
+
