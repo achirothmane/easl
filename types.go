@@ -35,6 +35,7 @@ const (
 	ReasonStaleEvidence     InvalidationReason = "STALE_EVIDENCE"
 	ReasonContradicted      InvalidationReason = "CONTRADICTED"
 	ReasonDependencyInvalid InvalidationReason = "DEPENDENCY_INVALID"
+	ReasonAssumptionExpired InvalidationReason = "ASSUMPTION_EXPIRED"
 )
 
 // Evidence is an externally produced observation. EASL does not interpret
@@ -57,8 +58,9 @@ type Evidence struct {
 type Assumption struct {
 	ID AssumptionID `json:"id"`
 
-	Requires  []EvidenceID   `json:"requires,omitempty"`
-	DependsOn []AssumptionID `json:"depends_on,omitempty"`
+	Requires   []EvidenceID   `json:"requires,omitempty"`
+	DependsOn  []AssumptionID `json:"depends_on,omitempty"`
+	ValidUntil *time.Time     `json:"valid_until,omitempty"`
 }
 
 // Snapshot is the deterministic input to Evaluate. At is supplied by the
