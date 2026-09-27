@@ -53,13 +53,14 @@ The result is machine-readable:
 }
 ```
 
-When evidence is stale, contradicted, missing, or an upstream assumption becomes invalid, EASL returns the affected evidence and assumptions explicitly.
+When evidence is stale, contradicted, missing, an assumption expires, or an upstream assumption becomes invalid, EASL returns the affected evidence and assumptions explicitly.
 
 ## Semantics in v0
 
 - `Snapshot.At` makes freshness evaluation deterministic and replayable.
 - Required evidence must exist and remain fresh.
 - Fresh evidence may explicitly contradict assumptions.
+- Assumptions may carry an explicit `ValidUntil`; expiry invalidates the assumption deterministically at the snapshot time.
 - Assumption invalidation propagates through `DependsOn` edges.
 - Missing required evidence is a normal `INSUFFICIENT` state; malformed assumption references, duplicate IDs, and dependency cycles return errors so callers can fail closed.
 - EASL does not infer domain meaning, mutate external state, or contain an execution policy engine.
