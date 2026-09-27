@@ -16,13 +16,13 @@ type subjectStateConformanceFile struct {
 }
 
 type subjectStateConformanceCase struct {
-	Name                    string         `json:"name"`
-	Bindings                []StateBinding `json:"bindings"`
+	Name                    string           `json:"name"`
+	Bindings                []StateBinding   `json:"bindings"`
 	Required                []StateBindingID `json:"required"`
-	WantState               State          `json:"want_state"`
-	WantEvidenceStatus      EvidenceStatus `json:"want_evidence_status"`
+	WantState               State            `json:"want_state"`
+	WantEvidenceStatus      EvidenceStatus   `json:"want_evidence_status"`
 	WantInvalidatedBindings []StateBindingID `json:"want_invalidated_bindings"`
-	WantErrorContains       string         `json:"want_error_contains"`
+	WantErrorContains       string           `json:"want_error_contains"`
 }
 
 func TestSubjectStateBindingConformanceVectors(t *testing.T) {
