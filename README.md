@@ -74,6 +74,7 @@ Early core contract. The next capabilities should be extracted only when real co
 The reasoning model behind EASL is documented in:
 
 - [Assumption Decay Doctrine](docs/assumption-decay-doctrine.md)
+- [Assumption Lifecycle](docs/assumption-lifecycle.md)
 
 The doctrine is a specification/theory layer inside EASL. It should only become a separate repository if it later develops an independent lifecycle with versioning, conformance tests, and multiple implementations.
 
