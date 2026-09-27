@@ -53,7 +53,26 @@ The result is machine-readable:
 }
 ```
 
-When evidence is stale, contradicted, missing, an assumption expires, or an upstream assumption becomes invalid, EASL returns the affected evidence and assumptions explicitly.
+When evidence is stale, contradicted, missing, an assumption expires, its bound subject state changes, or an upstream assumption becomes invalid, EASL returns the affected evidence and assumptions explicitly.
+
+Subject-state bindings are domain-neutral opaque tokens. Producers decide how to canonicalize a subject state; EASL only checks whether the state that justified an assumption still matches the currently observed state:
+
+```go
+result, err := easl.Evaluate(easl.Snapshot{
+    At: time.Now(),
+    StateBindings: []easl.StateBinding{{
+        ID:       "target-state",
+        Expected: authorizedStateDigest,
+        Observed: currentStateDigest,
+    }},
+    Assumptions: []easl.Assumption{{
+        ID:                    "safe-to-act",
+        RequiresStateBindings: []easl.StateBindingID{"target-state"},
+    }},
+})
+```
+
+If the opaque tokens differ, the assumption is invalidated with `SUBJECT_STATE_CHANGED`.
 
 ## Semantics in v0
 
@@ -61,6 +80,7 @@ When evidence is stale, contradicted, missing, an assumption expires, or an upst
 - Required evidence must exist and remain fresh.
 - Fresh evidence may explicitly contradict assumptions.
 - Assumptions may carry an explicit `ValidUntil`; expiry invalidates the assumption deterministically at the snapshot time.
+- Assumptions may require opaque subject-state bindings; a changed binding invalidates the old justification with `SUBJECT_STATE_CHANGED`.
 - Assumption invalidation propagates through `DependsOn` edges.
 - Missing required evidence is a normal `INSUFFICIENT` state; malformed assumption references, duplicate IDs, and dependency cycles return errors so callers can fail closed.
 - EASL does not infer domain meaning, mutate external state, or contain an execution policy engine.
