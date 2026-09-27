@@ -74,6 +74,16 @@ result, err := easl.Evaluate(easl.Snapshot{
 
 If the opaque tokens differ, the assumption is invalidated with `SUBJECT_STATE_CHANGED`.
 
+## Conformance
+
+EASL now publishes machine-readable conformance vectors for the subject-state binding primitive in:
+
+`conformance/subject_state_binding.json`
+
+The Go implementation executes these vectors in CI. Other language consumers may use the same vectors to verify compatibility without copying domain semantics into EASL.
+
+This does **not** make every compatibility layer an independent full EASL implementation. The Go module remains the reference implementation, and new conformance surfaces should be added only after a primitive is consumed outside the reference runtime.
+
 ## Semantics in v0
 
 - `Snapshot.At` makes freshness evaluation deterministic and replayable.
