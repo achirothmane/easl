@@ -213,7 +213,7 @@ func validateRequiredFields(m Manifest) error {
 	}
 	hashes := map[string]string{
 		"previous_manifest_hash":   m.PreviousManifestHash,
-		"doctrine_manifest_hash":   m.Doctrine.DoctrineManifestHash,   m.PreviousManifestHash,
+		"doctrine_manifest_hash":   m.Doctrine.DoctrineManifestHash,
 		"spec_hash":                m.Specification.SpecHash,
 		"invariant_set_hash":       m.Specification.InvariantSetHash,
 		"assumption_set_hash":      m.Specification.AssumptionSetHash,
