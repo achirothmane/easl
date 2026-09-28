@@ -25,16 +25,16 @@ type Manifest struct {
 	ArchitectureVersion  string `json:"architecture_version"`
 
 	Doctrine       DoctrineBinding `json:"doctrine"`
-	Specification  Specification  `json:"specification"`
-	Verification   Verification   `json:"verification"`
-	ThreatModel    ThreatModel    `json:"threat_model"`
-	Trust          Trust          `json:"trust"`
-	Enforcement    Enforcement    `json:"enforcement"`
-	Implementation Implementation `json:"implementation"`
-	SupplyChain    SupplyChain    `json:"supply_chain"`
-	Validity       Validity       `json:"validity"`
-	Approval       Approval       `json:"approval"`
-	Authenticity   Authenticity   `json:"authenticity"`
+	Specification  Specification   `json:"specification"`
+	Verification   Verification    `json:"verification"`
+	ThreatModel    ThreatModel     `json:"threat_model"`
+	Trust          Trust           `json:"trust"`
+	Enforcement    Enforcement     `json:"enforcement"`
+	Implementation Implementation  `json:"implementation"`
+	SupplyChain    SupplyChain     `json:"supply_chain"`
+	Validity       Validity        `json:"validity"`
+	Approval       Approval        `json:"approval"`
+	Authenticity   Authenticity    `json:"authenticity"`
 }
 
 // DoctrineBinding cryptographically binds Level -1 Genesis to one Level -2
