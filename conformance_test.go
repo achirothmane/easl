@@ -46,7 +46,7 @@ func TestSubjectStateBindingConformanceVectors(t *testing.T) {
 	for _, tc := range vectors.Cases {
 		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
-			got, err := Evaluate(Snapshot{
+			got, err := evaluateSnapshot(Snapshot{
 				At:            at,
 				StateBindings: tc.Bindings,
 				Assumptions: []Assumption{{
