@@ -28,6 +28,8 @@ type Runtime struct {
 	ready                bool
 	genesisEpoch         uint64
 	manifestVersion      string
+	doctrineEpoch        uint64
+	doctrineManifestHash string
 	implementationDigest string
 	conformanceLevel     genesis.ConformanceLevel
 }
@@ -36,6 +38,8 @@ type Runtime struct {
 // without exposing mutable readiness state.
 type RuntimeMetadata struct {
 	GenesisEpoch         uint64                   `json:"genesis_epoch"`
+	DoctrineEpoch        uint64                   `json:"doctrine_epoch"`
+	DoctrineManifestHash string                   `json:"doctrine_manifest_hash"`
 	ManifestVersion      string                   `json:"manifest_version"`
 	ImplementationDigest string                   `json:"implementation_digest"`
 	ConformanceLevel     genesis.ConformanceLevel `json:"conformance_level"`
@@ -48,6 +52,15 @@ type RuntimeMetadata struct {
 // implementation digest and minimum conformance level so a caller cannot
 // accidentally bootstrap with an unbound build.
 func Bootstrap(ctx context.Context, in BootstrapInput) (*Runtime, genesis.Result) {
+	if in.Verification.ExpectedDoctrineManifestHash == "" {
+		return nil, genesis.Result{
+			State: genesis.StateLocked,
+			Failures: []genesis.Failure{{
+				Code:   genesis.FailureDoctrineMismatch,
+				Detail: "expected doctrine manifest hash is required for operational bootstrap",
+			}},
+		}
+	}
 	if in.Verification.ExpectedImplementationDigest == "" {
 		return nil, genesis.Result{
 			State: genesis.StateLocked,
@@ -75,6 +88,8 @@ func Bootstrap(ctx context.Context, in BootstrapInput) (*Runtime, genesis.Result
 	return &Runtime{
 		ready:                true,
 		genesisEpoch:         in.Manifest.GenesisEpoch,
+		doctrineEpoch:        in.Manifest.Doctrine.DoctrineEpoch,
+		doctrineManifestHash: in.Manifest.Doctrine.DoctrineManifestHash,
 		manifestVersion:      in.Manifest.ManifestVersion,
 		implementationDigest: in.Manifest.Implementation.ImplementationDigest,
 		conformanceLevel:     in.Manifest.Implementation.ConformanceLevel,
@@ -96,6 +111,8 @@ func (r *Runtime) Metadata() (RuntimeMetadata, error) {
 	}
 	return RuntimeMetadata{
 		GenesisEpoch:         r.genesisEpoch,
+		DoctrineEpoch:        r.doctrineEpoch,
+		DoctrineManifestHash: r.doctrineManifestHash,
 		ManifestVersion:      r.manifestVersion,
 		ImplementationDigest: r.implementationDigest,
 		ConformanceLevel:     r.conformanceLevel,

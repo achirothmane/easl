@@ -21,6 +21,9 @@ func (v bootstrapVerifier) maybe(code genesis.FailureCode) error {
 	return nil
 }
 
+func (v bootstrapVerifier) VerifyDoctrineBinding(context.Context, genesis.Manifest) error {
+	return v.maybe(genesis.FailureDoctrineUnverified)
+}
 func (v bootstrapVerifier) VerifyAuthenticity(context.Context, genesis.Manifest) error {
 	return v.maybe(genesis.FailureAuthenticity)
 }
@@ -68,6 +71,26 @@ func TestZeroRuntimeFailsClosed(t *testing.T) {
 	}
 }
 
+func TestBootstrapRequiresExplicitDoctrineBinding(t *testing.T) {
+	now := time.Date(2026, 9, 28, 4, 0, 0, 0, time.UTC)
+	manifest := bootstrapManifest(now)
+
+	runtime, result := Bootstrap(context.Background(), BootstrapInput{
+		Manifest: manifest,
+		Verification: genesis.Context{
+			Now:                          now,
+			ExpectedImplementationDigest: rootDigest("6"),
+			RequiredConformance:          genesis.ConformanceC3,
+		},
+		Verifier: bootstrapVerifier{},
+	})
+
+	if runtime != nil {
+		t.Fatal("expected no runtime without expected doctrine manifest hash")
+	}
+	assertGenesisFailure(t, result, genesis.FailureDoctrineMismatch)
+}
+
 func TestBootstrapRequiresExplicitImplementationBinding(t *testing.T) {
 	now := time.Date(2026, 9, 28, 4, 0, 0, 0, time.UTC)
 	manifest := bootstrapManifest(now)
@@ -75,8 +98,9 @@ func TestBootstrapRequiresExplicitImplementationBinding(t *testing.T) {
 	runtime, result := Bootstrap(context.Background(), BootstrapInput{
 		Manifest: manifest,
 		Verification: genesis.Context{
-			Now:                 now,
-			RequiredConformance: genesis.ConformanceC3,
+			Now:                          now,
+			ExpectedDoctrineManifestHash: rootDigest("d"),
+			RequiredConformance:          genesis.ConformanceC3,
 		},
 		Verifier: bootstrapVerifier{},
 	})
@@ -97,6 +121,8 @@ func TestBootstrapRejectsGenesisRollback(t *testing.T) {
 		Verification: genesis.Context{
 			Now:                          now,
 			MinimumAcceptedEpoch:         7,
+			MinimumAcceptedDoctrineEpoch: 3,
+			ExpectedDoctrineManifestHash: rootDigest("d"),
 			ExpectedImplementationDigest: rootDigest("6"),
 			RequiredConformance:          genesis.ConformanceC3,
 		},
@@ -118,6 +144,8 @@ func TestBootstrapRejectsExternalVerificationFailure(t *testing.T) {
 		Verification: genesis.Context{
 			Now:                          now,
 			MinimumAcceptedEpoch:         7,
+			MinimumAcceptedDoctrineEpoch: 3,
+			ExpectedDoctrineManifestHash: rootDigest("d"),
 			ExpectedImplementationDigest: rootDigest("6"),
 			RequiredConformance:          genesis.ConformanceC3,
 		},
@@ -139,6 +167,8 @@ func TestBootstrapCreatesOnlyOperationalEvaluationPath(t *testing.T) {
 		Verification: genesis.Context{
 			Now:                          now,
 			MinimumAcceptedEpoch:         7,
+			MinimumAcceptedDoctrineEpoch: 3,
+			ExpectedDoctrineManifestHash: rootDigest("d"),
 			ExpectedImplementationDigest: rootDigest("6"),
 			RequiredConformance:          genesis.ConformanceC3,
 		},
@@ -169,6 +199,8 @@ func TestBootstrapCreatesOnlyOperationalEvaluationPath(t *testing.T) {
 		t.Fatalf("Metadata() error = %v", err)
 	}
 	if metadata.GenesisEpoch != manifest.GenesisEpoch ||
+		metadata.DoctrineEpoch != manifest.Doctrine.DoctrineEpoch ||
+		metadata.DoctrineManifestHash != manifest.Doctrine.DoctrineManifestHash ||
 		metadata.ImplementationDigest != manifest.Implementation.ImplementationDigest ||
 		metadata.ConformanceLevel != genesis.ConformanceC3 {
 		t.Fatalf("unexpected runtime metadata: %+v", metadata)
@@ -190,9 +222,14 @@ func assertGenesisFailure(t *testing.T, result genesis.Result, code genesis.Fail
 
 func bootstrapManifest(now time.Time) genesis.Manifest {
 	return genesis.Manifest{
-		ManifestVersion:     "1.0",
+		ManifestVersion:     "1.1",
 		GenesisEpoch:        7,
-		ArchitectureVersion: "level-minus-1/v1.0",
+		ArchitectureVersion: "level-minus-1/v1.1",
+		Doctrine: genesis.DoctrineBinding{
+			DoctrineID:           "aegis-ege-doctrine",
+			DoctrineEpoch:        3,
+			DoctrineManifestHash: rootDigest("d"),
+		},
 		Specification: genesis.Specification{
 			SpecHash:              rootDigest("a"),
 			InvariantSetHash:      rootDigest("b"),

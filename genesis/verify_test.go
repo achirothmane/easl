@@ -19,6 +19,9 @@ func (f fakeVerifier) err(code FailureCode) error {
 	return nil
 }
 
+func (f fakeVerifier) VerifyDoctrineBinding(context.Context, Manifest) error {
+	return f.err(FailureDoctrineUnverified)
+}
 func (f fakeVerifier) VerifyAuthenticity(context.Context, Manifest) error {
 	return f.err(FailureAuthenticity)
 }
@@ -46,10 +49,15 @@ func (f fakeVerifier) VerifyProofRequirements(context.Context, Manifest) error {
 
 func validManifest(now time.Time) Manifest {
 	return Manifest{
-		ManifestVersion:     "1.0",
+		ManifestVersion:     "1.1",
 		GenesisEpoch:        7,
 		Sequence:            0,
-		ArchitectureVersion: "level-minus-1/v1.0",
+		ArchitectureVersion: "level-minus-1/v1.1",
+		Doctrine: DoctrineBinding{
+			DoctrineID:           "aegis-ege-doctrine",
+			DoctrineEpoch:        3,
+			DoctrineManifestHash: digest("d"),
+		},
 		Specification: Specification{
 			SpecHash:              digest("a"),
 			InvariantSetHash:      digest("b"),
@@ -125,6 +133,8 @@ func TestVerifyAllowsValidGenesis(t *testing.T) {
 	got := Verify(context.Background(), m, Context{
 		Now:                          now,
 		MinimumAcceptedEpoch:         7,
+		MinimumAcceptedDoctrineEpoch: 3,
+		ExpectedDoctrineManifestHash: digest("d"),
 		ExpectedImplementationDigest: digest("6"),
 		RequiredConformance:          ConformanceC3,
 	}, fakeVerifier{})
@@ -132,6 +142,44 @@ func TestVerifyAllowsValidGenesis(t *testing.T) {
 	if got.State != StateReady {
 		t.Fatalf("state = %s, want %s; failures=%v", got.State, StateReady, got.Failures)
 	}
+}
+
+func TestVerifyFailsClosedOnDoctrineRollback(t *testing.T) {
+	now := time.Date(2026, 9, 28, 3, 30, 0, 0, time.UTC)
+	m := validManifest(now)
+	m.Doctrine.DoctrineEpoch = 2
+
+	got := Verify(context.Background(), m, Context{
+		Now:                          now,
+		MinimumAcceptedDoctrineEpoch: 3,
+		ExpectedDoctrineManifestHash: digest("d"),
+	}, fakeVerifier{})
+
+	assertFailure(t, got, FailureDoctrineRollback)
+}
+
+func TestVerifyFailsClosedOnDoctrineHashMismatch(t *testing.T) {
+	now := time.Date(2026, 9, 28, 3, 30, 0, 0, time.UTC)
+	m := validManifest(now)
+
+	got := Verify(context.Background(), m, Context{
+		Now:                          now,
+		ExpectedDoctrineManifestHash: digest("e"),
+	}, fakeVerifier{})
+
+	assertFailure(t, got, FailureDoctrineMismatch)
+}
+
+func TestVerifyFailsClosedWhenDoctrineCannotBeExternallyVerified(t *testing.T) {
+	now := time.Date(2026, 9, 28, 3, 30, 0, 0, time.UTC)
+	m := validManifest(now)
+
+	got := Verify(context.Background(), m, Context{
+		Now:                          now,
+		ExpectedDoctrineManifestHash: digest("d"),
+	}, fakeVerifier{fail: FailureDoctrineUnverified})
+
+	assertFailure(t, got, FailureDoctrineUnverified)
 }
 
 func TestVerifyFailsClosedOnRollback(t *testing.T) {

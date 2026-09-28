@@ -24,16 +24,27 @@ type Manifest struct {
 	PreviousManifestHash string `json:"previous_manifest_hash,omitempty"`
 	ArchitectureVersion  string `json:"architecture_version"`
 
-	Specification  Specification  `json:"specification"`
-	Verification   Verification   `json:"verification"`
-	ThreatModel    ThreatModel    `json:"threat_model"`
-	Trust          Trust          `json:"trust"`
-	Enforcement    Enforcement    `json:"enforcement"`
-	Implementation Implementation `json:"implementation"`
-	SupplyChain    SupplyChain    `json:"supply_chain"`
-	Validity       Validity       `json:"validity"`
-	Approval       Approval       `json:"approval"`
-	Authenticity   Authenticity   `json:"authenticity"`
+	Doctrine       DoctrineBinding `json:"doctrine"`
+	Specification  Specification   `json:"specification"`
+	Verification   Verification    `json:"verification"`
+	ThreatModel    ThreatModel     `json:"threat_model"`
+	Trust          Trust           `json:"trust"`
+	Enforcement    Enforcement     `json:"enforcement"`
+	Implementation Implementation  `json:"implementation"`
+	SupplyChain    SupplyChain     `json:"supply_chain"`
+	Validity       Validity        `json:"validity"`
+	Approval       Approval        `json:"approval"`
+	Authenticity   Authenticity    `json:"authenticity"`
+}
+
+// DoctrineBinding cryptographically binds Level -1 Genesis to one Level -2
+// doctrine epoch. The external verifier must establish that the referenced
+// doctrine is ratified/current according to the deployment's constitutional
+// authority; the manifest cannot self-certify doctrine validity.
+type DoctrineBinding struct {
+	DoctrineID           string `json:"doctrine_id"`
+	DoctrineEpoch        uint64 `json:"doctrine_epoch"`
+	DoctrineManifestHash string `json:"doctrine_manifest_hash"`
 }
 
 type Specification struct {

@@ -18,7 +18,12 @@ jobs:
           go-version-file: go.mod
           cache: false
       - name: Format check
-        run: test -z "$(gofmt -l .)"
+        run: |
+          files="$(gofmt -l .)"
+          if [ -n "$files" ]; then
+            printf 'gofmt required for:\n%s\n' "$files"
+            exit 1
+          fi
       - name: Vet
         run: go vet ./...
       - name: Test
