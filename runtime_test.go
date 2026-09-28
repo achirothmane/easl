@@ -71,7 +71,6 @@ func TestZeroRuntimeFailsClosed(t *testing.T) {
 	}
 }
 
-
 func TestBootstrapRequiresExplicitDoctrineBinding(t *testing.T) {
 	now := time.Date(2026, 9, 28, 4, 0, 0, 0, time.UTC)
 	manifest := bootstrapManifest(now)
