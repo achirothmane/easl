@@ -9,6 +9,9 @@ EASL does **not** execute actions and does **not** decide policy. It answers a n
 A downstream policy engine such as Aegis-EGE can consume that result and decide whether an execution intent should be `ALLOW`, `BLOCK`, or `ESCALATE`.
 
 ```text
+DoctrineManifest / active doctrine
+       |
+       v
 GenesisManifest + external verification
        |
        v
@@ -38,6 +41,8 @@ runtime, genesisResult := easl.Bootstrap(ctx, easl.BootstrapInput{
     Verification: genesis.Context{
         Now:                          time.Now().UTC(),
         MinimumAcceptedEpoch:         minimumEpoch,
+        MinimumAcceptedDoctrineEpoch: minimumDoctrineEpoch,
+        ExpectedDoctrineManifestHash: activeDoctrineDigest,
         ExpectedImplementationDigest: runtimeDigest,
         RequiredConformance:          genesis.ConformanceC3,
     },
@@ -81,8 +86,7 @@ genesis.Verify
       '-- BOOTSTRAP_READY --> Runtime.Evaluate
 ```
 
-The operational bootstrap additionally requires an explicit implementation
-digest and minimum conformance level. This prevents accidentally accepting a
+The operational bootstrap additionally requires an explicit expected Level -2 doctrine manifest digest, implementation digest, and minimum conformance level. The doctrine epoch may also be fenced against a monotonic constitutional minimum. This prevents accidentally accepting a
 manifest that is not bound to the runtime artifact being started.
 
 The evaluation result remains machine-readable:
