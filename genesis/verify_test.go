@@ -144,7 +144,6 @@ func TestVerifyAllowsValidGenesis(t *testing.T) {
 	}
 }
 
-
 func TestVerifyFailsClosedOnDoctrineRollback(t *testing.T) {
 	now := time.Date(2026, 9, 28, 3, 30, 0, 0, time.UTC)
 	m := validManifest(now)
