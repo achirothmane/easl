@@ -6,11 +6,14 @@ Status: **Baseline v1.0**
 
 Level -1 exists before operational bootstrap. It does not authorize domain actions and it does not claim that a formal model proves every property of the real world. Its job is narrower and stronger: produce a cryptographically verifiable **Genesis Manifest** that binds the accepted specification, threat model, trust roots, enforcement policy, implementation/build identity, proof scope, provenance, validity window, and approval policy into one pre-bootstrap decision surface.
 
-The governing rule is:
+The governing rules are:
 
 ```text
+NO_GENESIS_WITHOUT_VALID_DOCTRINE
 NO_BOOTSTRAP_WITHOUT_VALID_GENESIS
 ```
+
+Level -1 cannot self-authorize its constitutional source. Every Genesis Manifest MUST bind one Level -2 doctrine identity and epoch, and an external constitutional verifier MUST establish that the referenced doctrine is acceptable for new authority.
 
 EASL, its initial state, and the first execution intent are not operationally legitimate until the Genesis gate succeeds.
 
@@ -77,6 +80,7 @@ The machine-readable schema is `genesis/genesis-manifest.schema.json`.
 The manifest contains:
 
 - version, epoch, sequence, and predecessor hash;
+- Level -2 doctrine ID, doctrine epoch, and doctrine manifest hash;
 - specification and proof-scope identities;
 - threat/capability envelope identities;
 - trust-root, attestation, nonce, and revocation policy identities;
@@ -105,7 +109,7 @@ MANIFEST_EXCLUDING_AUTHENTICITY
 
 ### Anti-rollback chain
 
-`genesis_epoch` is compared with a monotonic external minimum. `validity.minimum_accepted_epoch` may tighten that floor but cannot lower the caller's floor.
+`genesis_epoch` is compared with a monotonic external minimum. The bound `doctrine_epoch` is independently compared with a constitutional minimum supplied by the bootstrap context. `validity.minimum_accepted_epoch` may tighten that floor but cannot lower the caller's floor.
 
 Within an epoch, `sequence > 0` requires `previous_manifest_hash`, defined as the SHA-256 digest of the RFC8785-canonicalized preceding manifest. Deployments SHOULD persist accepted epoch/sequence state in a rollback-resistant store.
 
@@ -119,7 +123,11 @@ The operational predicate is:
 
 ```text
 BOOTSTRAP_ALLOWED iff
-    ManifestAuthentic
+    DoctrineBound
+and DoctrineExternallyVerified
+and DoctrineEpochNotRolledBack
+and DoctrineManifestMatchesExpected
+and ManifestAuthentic
 and ManifestFresh
 and not ManifestRevoked
 and EpochNotRolledBack
@@ -162,6 +170,6 @@ A valid Genesis Manifest does not eliminate continuous evidence quality, contrad
 
 ## Reference verifier
 
-The Go package `genesis` implements the first fail-closed reference verifier. Local structural checks are combined with an `ExternalVerifier` interface for facts that cannot be proven from the JSON document alone: authenticity, trust root, attestation, revocation, build provenance, spec/build binding, runtime default-deny state, and proof requirements.
+The Go package `genesis` implements the first fail-closed reference verifier. Local structural checks are combined with an `ExternalVerifier` interface for facts that cannot be proven from the JSON document alone: doctrine validity/current authority, authenticity, trust root, attestation, revocation, build provenance, spec/build binding, runtime default-deny state, and proof requirements.
 
 The verifier returns `BOOTSTRAP_READY` only when every required check succeeds. Otherwise it returns `GENESIS_LOCKED` plus machine-readable failure codes.
