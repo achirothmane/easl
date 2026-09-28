@@ -9,11 +9,15 @@ EASL does **not** execute actions and does **not** decide policy. It answers a n
 A downstream policy engine such as Aegis-EGE can consume that result and decide whether an execution intent should be `ALLOW`, `BLOCK`, or `ESCALATE`.
 
 ```text
-Evidence Producers
+GenesisManifest + external verification
        |
        v
-      EASL
-  epistemic state
+EASL Bootstrap
+  BOOTSTRAP_READY
+       |
+       v
+  EASL Runtime
+ epistemic state
        |
        v
    Aegis-EGE
@@ -25,26 +29,63 @@ ALLOW / BLOCK / ESCALATE
 
 ## Core contract
 
+Operational evaluation is Genesis-gated. A caller must first verify the Level -1
+Genesis package and obtain an EASL `Runtime`:
+
 ```go
-result, err := easl.Evaluate(easl.Snapshot{
-    At: time.Now(),
-    Evidence: []easl.Evidence{
-        {
-            ID:         "deployment-health",
-            ObservedAt: observedAt,
-            ExpiresAt:  &expiresAt,
-        },
+runtime, genesisResult := easl.Bootstrap(ctx, easl.BootstrapInput{
+    Manifest: manifest,
+    Verification: genesis.Context{
+        Now:                          time.Now().UTC(),
+        MinimumAcceptedEpoch:         minimumEpoch,
+        ExpectedImplementationDigest: runtimeDigest,
+        RequiredConformance:          genesis.ConformanceC3,
     },
-    Assumptions: []easl.Assumption{
-        {
-            ID:       "target-is-healthy",
-            Requires: []easl.EvidenceID{"deployment-health"},
-        },
-    },
+    Verifier: verifier,
+})
+if genesisResult.State != genesis.StateReady {
+    // fail closed: runtime is nil
+    return
+}
+
+result, err := runtime.Evaluate(easl.Snapshot{
+    At: time.Now().UTC(),
+    Evidence: []easl.Evidence{{
+        ID:         "deployment-health",
+        ObservedAt: observedAt,
+        ExpiresAt:  &expiresAt,
+    }},
+    Assumptions: []easl.Assumption{{
+        ID:       "target-is-healthy",
+        Requires: []easl.EvidenceID{"deployment-health"},
+    }},
 })
 ```
 
-The result is machine-readable:
+The legacy package-level `easl.Evaluate(...)` entry point is intentionally
+fail-closed. It returns `ErrGenesisNotReady` and never performs operational
+evaluation. A zero-value `Runtime` behaves the same way.
+
+This enforces:
+
+```text
+NO_BOOTSTRAP_WITHOUT_VALID_GENESIS
+
+GenesisManifest
+      |
+      v
+genesis.Verify
+      |
+      +-- GENESIS_LOCKED --> no Runtime --> evaluation denied
+      |
+      '-- BOOTSTRAP_READY --> Runtime.Evaluate
+```
+
+The operational bootstrap additionally requires an explicit implementation
+digest and minimum conformance level. This prevents accidentally accepting a
+manifest that is not bound to the runtime artifact being started.
+
+The evaluation result remains machine-readable:
 
 ```json
 {
@@ -53,13 +94,17 @@ The result is machine-readable:
 }
 ```
 
-When evidence is stale, contradicted, missing, an assumption expires, its bound subject state changes, or an upstream assumption becomes invalid, EASL returns the affected evidence and assumptions explicitly.
+When evidence is stale, contradicted, missing, an assumption expires, its bound
+subject state changes, or an upstream assumption becomes invalid, EASL returns
+the affected evidence and assumptions explicitly.
 
-Subject-state bindings are domain-neutral opaque tokens. Producers decide how to canonicalize a subject state; EASL only checks whether the state that justified an assumption still matches the currently observed state:
+Subject-state bindings remain domain-neutral opaque tokens. Producers decide
+how to canonicalize a subject state; EASL only checks whether the state that
+justified an assumption still matches the currently observed state:
 
 ```go
-result, err := easl.Evaluate(easl.Snapshot{
-    At: time.Now(),
+result, err := runtime.Evaluate(easl.Snapshot{
+    At: time.Now().UTC(),
     StateBindings: []easl.StateBinding{{
         ID:       "target-state",
         Expected: authorizedStateDigest,
@@ -72,7 +117,8 @@ result, err := easl.Evaluate(easl.Snapshot{
 })
 ```
 
-If the opaque tokens differ, the assumption is invalidated with `SUBJECT_STATE_CHANGED`.
+If the opaque tokens differ, the assumption is invalidated with
+`SUBJECT_STATE_CHANGED`.
 
 ## Conformance
 

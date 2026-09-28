@@ -5,7 +5,15 @@ import (
 	"sort"
 )
 
+// Evaluate is retained as a fail-closed compatibility boundary.
+//
+// Deprecated: operational callers must use Bootstrap and Runtime.Evaluate.
+// Direct evaluation without a verified Genesis runtime is forbidden.
 func Evaluate(s Snapshot) (Evaluation, error) {
+	return lockedEvaluation(), ErrGenesisNotReady
+}
+
+func evaluateSnapshot(s Snapshot) (Evaluation, error) {
 	if s.At.IsZero() {
 		return Evaluation{}, fmt.Errorf("easl: zero evaluation time")
 	}

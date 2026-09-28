@@ -9,7 +9,7 @@ func TestEvaluateValid(t *testing.T) {
 	now := time.Date(2026, 9, 27, 1, 45, 0, 0, time.UTC)
 	expires := now.Add(time.Hour)
 
-	got, err := Evaluate(Snapshot{
+	got, err := evaluateSnapshot(Snapshot{
 		At: now,
 		Evidence: []Evidence{{
 			ID:         "health-check",
@@ -33,7 +33,7 @@ func TestEvaluateStaleRequiredEvidenceInvalidates(t *testing.T) {
 	now := time.Date(2026, 9, 27, 1, 45, 0, 0, time.UTC)
 	expires := now.Add(-time.Second)
 
-	got, err := Evaluate(Snapshot{
+	got, err := evaluateSnapshot(Snapshot{
 		At: now,
 		Evidence: []Evidence{{
 			ID:         "health-check",
@@ -56,7 +56,7 @@ func TestEvaluateStaleRequiredEvidenceInvalidates(t *testing.T) {
 func TestEvaluateContradictionWins(t *testing.T) {
 	now := time.Date(2026, 9, 27, 1, 45, 0, 0, time.UTC)
 
-	got, err := Evaluate(Snapshot{
+	got, err := evaluateSnapshot(Snapshot{
 		At: now,
 		Evidence: []Evidence{{
 			ID:          "regression-signal",
@@ -76,7 +76,7 @@ func TestEvaluateContradictionWins(t *testing.T) {
 func TestEvaluatePropagatesDependencyInvalidation(t *testing.T) {
 	now := time.Date(2026, 9, 27, 1, 45, 0, 0, time.UTC)
 
-	got, err := Evaluate(Snapshot{
+	got, err := evaluateSnapshot(Snapshot{
 		At: now,
 		Evidence: []Evidence{{
 			ID:          "bad-signal",
@@ -99,7 +99,7 @@ func TestEvaluatePropagatesDependencyInvalidation(t *testing.T) {
 func TestEvaluateMissingRequiredEvidenceIsInsufficient(t *testing.T) {
 	now := time.Date(2026, 9, 27, 1, 45, 0, 0, time.UTC)
 
-	got, err := Evaluate(Snapshot{
+	got, err := evaluateSnapshot(Snapshot{
 		At:          now,
 		Assumptions: []Assumption{{ID: "a", Requires: []EvidenceID{"missing"}}},
 	})
@@ -117,7 +117,7 @@ func TestEvaluateMissingRequiredEvidenceIsInsufficient(t *testing.T) {
 func TestEvaluateRejectsDependencyCycle(t *testing.T) {
 	now := time.Date(2026, 9, 27, 1, 45, 0, 0, time.UTC)
 
-	_, err := Evaluate(Snapshot{
+	_, err := evaluateSnapshot(Snapshot{
 		At: now,
 		Assumptions: []Assumption{
 			{ID: "a", DependsOn: []AssumptionID{"b"}},
@@ -133,7 +133,7 @@ func TestEvaluateAssumptionValidBeforeExpiry(t *testing.T) {
 	now := time.Date(2026, 9, 27, 2, 45, 0, 0, time.UTC)
 	validUntil := now.Add(time.Second)
 
-	got, err := Evaluate(Snapshot{
+	got, err := evaluateSnapshot(Snapshot{
 		At: now,
 		Assumptions: []Assumption{{
 			ID:         "safe-to-execute",
@@ -152,7 +152,7 @@ func TestEvaluateAssumptionExpiresAtBoundary(t *testing.T) {
 	now := time.Date(2026, 9, 27, 2, 45, 0, 0, time.UTC)
 	validUntil := now
 
-	got, err := Evaluate(Snapshot{
+	got, err := evaluateSnapshot(Snapshot{
 		At: now,
 		Assumptions: []Assumption{{
 			ID:         "safe-to-execute",
@@ -174,7 +174,7 @@ func TestEvaluateExpiredAssumptionInvalidatesDependents(t *testing.T) {
 	now := time.Date(2026, 9, 27, 2, 45, 0, 0, time.UTC)
 	expired := now.Add(-time.Second)
 
-	got, err := Evaluate(Snapshot{
+	got, err := evaluateSnapshot(Snapshot{
 		At: now,
 		Assumptions: []Assumption{
 			{
@@ -209,7 +209,7 @@ func TestEvaluateExpiredAssumptionInvalidatesDependents(t *testing.T) {
 func TestEvaluateMatchingSubjectStateBindingRemainsValid(t *testing.T) {
 	now := time.Date(2026, 9, 27, 4, 10, 0, 0, time.UTC)
 
-	got, err := Evaluate(Snapshot{
+	got, err := evaluateSnapshot(Snapshot{
 		At: now,
 		StateBindings: []StateBinding{{
 			ID:       "target-state",
@@ -232,7 +232,7 @@ func TestEvaluateMatchingSubjectStateBindingRemainsValid(t *testing.T) {
 func TestEvaluateChangedSubjectStateBindingInvalidatesAssumption(t *testing.T) {
 	now := time.Date(2026, 9, 27, 4, 10, 0, 0, time.UTC)
 
-	got, err := Evaluate(Snapshot{
+	got, err := evaluateSnapshot(Snapshot{
 		At: now,
 		StateBindings: []StateBinding{{
 			ID:       "target-state",
@@ -264,7 +264,7 @@ func TestEvaluateChangedSubjectStateBindingInvalidatesAssumption(t *testing.T) {
 func TestEvaluateSubjectStateChangePropagatesToDependents(t *testing.T) {
 	now := time.Date(2026, 9, 27, 4, 10, 0, 0, time.UTC)
 
-	got, err := Evaluate(Snapshot{
+	got, err := evaluateSnapshot(Snapshot{
 		At: now,
 		StateBindings: []StateBinding{{
 			ID:       "target-state",
@@ -304,7 +304,7 @@ func TestEvaluateSubjectStateChangePropagatesToDependents(t *testing.T) {
 func TestEvaluateRejectsUnknownStateBindingReference(t *testing.T) {
 	now := time.Date(2026, 9, 27, 4, 10, 0, 0, time.UTC)
 
-	_, err := Evaluate(Snapshot{
+	_, err := evaluateSnapshot(Snapshot{
 		At: now,
 		Assumptions: []Assumption{{
 			ID:                    "safe-to-act",
