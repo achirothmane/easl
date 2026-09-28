@@ -21,6 +21,9 @@ const (
 	FailureManifestNotYetValid     FailureCode = "MANIFEST_NOT_YET_VALID"
 	FailureManifestExpired         FailureCode = "MANIFEST_EXPIRED"
 	FailureEpochRollback           FailureCode = "EPOCH_ROLLBACK"
+	FailureDoctrineRollback        FailureCode = "DOCTRINE_EPOCH_ROLLBACK"
+	FailureDoctrineMismatch        FailureCode = "DOCTRINE_MANIFEST_MISMATCH"
+	FailureDoctrineUnverified      FailureCode = "DOCTRINE_UNVERIFIED"
 	FailureProofRequirements       FailureCode = "PROOF_REQUIREMENTS_UNSATISFIED"
 	FailureSpecBuildBinding        FailureCode = "SPEC_BUILD_BINDING_UNVERIFIED"
 	FailureBuildProvenance         FailureCode = "BUILD_PROVENANCE_UNVERIFIED"
@@ -47,6 +50,8 @@ type Result struct {
 type Context struct {
 	Now                          time.Time
 	MinimumAcceptedEpoch         uint64
+	MinimumAcceptedDoctrineEpoch uint64
+	ExpectedDoctrineManifestHash string
 	ExpectedImplementationDigest string
 	RequiredConformance          ConformanceLevel
 }
@@ -54,6 +59,7 @@ type Context struct {
 // ExternalVerifier binds the declarative manifest to facts that cannot be
 // established from the JSON document alone.
 type ExternalVerifier interface {
+	VerifyDoctrineBinding(context.Context, Manifest) error
 	VerifyAuthenticity(context.Context, Manifest) error
 	VerifyTrustRoot(context.Context, Manifest) error
 	VerifyAttestation(context.Context, Manifest) error
@@ -92,6 +98,12 @@ func Verify(ctx context.Context, m Manifest, c Context, external ExternalVerifie
 	if m.GenesisEpoch < minEpoch {
 		add(FailureEpochRollback, fmt.Sprintf("genesis epoch %d is below minimum %d", m.GenesisEpoch, minEpoch))
 	}
+	if m.Doctrine.DoctrineEpoch < c.MinimumAcceptedDoctrineEpoch {
+		add(FailureDoctrineRollback, fmt.Sprintf("doctrine epoch %d is below minimum %d", m.Doctrine.DoctrineEpoch, c.MinimumAcceptedDoctrineEpoch))
+	}
+	if c.ExpectedDoctrineManifestHash != "" && m.Doctrine.DoctrineManifestHash != c.ExpectedDoctrineManifestHash {
+		add(FailureDoctrineMismatch, "doctrine manifest hash does not match the expected active doctrine")
+	}
 
 	if m.Verification.ProofStatus != "PASS" {
 		add(FailureProofRequirements, "proof_status must be PASS")
@@ -115,6 +127,7 @@ func Verify(ctx context.Context, m Manifest, c Context, external ExternalVerifie
 		code FailureCode
 		fn   func(context.Context, Manifest) error
 	}{
+		{FailureDoctrineUnverified, external.VerifyDoctrineBinding},
 		{FailureAuthenticity, external.VerifyAuthenticity},
 		{FailureTrustRoot, external.VerifyTrustRoot},
 		{FailureAttestation, external.VerifyAttestation},
@@ -144,6 +157,8 @@ func validateRequiredFields(m Manifest) error {
 	required := map[string]string{
 		"manifest_version":         m.ManifestVersion,
 		"architecture_version":     m.ArchitectureVersion,
+		"doctrine_id":              m.Doctrine.DoctrineID,
+		"doctrine_manifest_hash":   m.Doctrine.DoctrineManifestHash,
 		"spec_hash":                m.Specification.SpecHash,
 		"invariant_set_hash":       m.Specification.InvariantSetHash,
 		"assumption_set_hash":      m.Specification.AssumptionSetHash,
@@ -198,6 +213,7 @@ func validateRequiredFields(m Manifest) error {
 	}
 	hashes := map[string]string{
 		"previous_manifest_hash":   m.PreviousManifestHash,
+		"doctrine_manifest_hash":   m.Doctrine.DoctrineManifestHash,   m.PreviousManifestHash,
 		"spec_hash":                m.Specification.SpecHash,
 		"invariant_set_hash":       m.Specification.InvariantSetHash,
 		"assumption_set_hash":      m.Specification.AssumptionSetHash,
