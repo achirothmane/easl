@@ -58,6 +58,17 @@ type Context struct {
 
 // ExternalVerifier binds the declarative manifest to facts that cannot be
 // established from the JSON document alone.
+//
+// Each deployment verifier owns the semantics of its assurance profile. A
+// method MUST return an error when the profile requires a fact that the
+// implementation cannot actually verify. Artifact existence, matching hashes,
+// or self-declared PASS fields may establish identity/binding only when that is
+// the profile's explicit claim; they must not be promoted into semantic proof,
+// current-host attestation, provenance, or refinement assurance.
+//
+// Deployment-specific current-subject inputs (for example host, boot, device,
+// challenge, or hardware context) stay outside EASL's generic manifest schema
+// and are the responsibility of the concrete ExternalVerifier.
 type ExternalVerifier interface {
 	VerifyDoctrineBinding(context.Context, Manifest) error
 	VerifyAuthenticity(context.Context, Manifest) error
