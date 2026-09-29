@@ -168,6 +168,32 @@ Genesis
 
 A valid Genesis Manifest does not eliminate continuous evidence quality, contradiction, decay, or re-attestation requirements.
 
+## External assurance semantics
+
+The generic manifest records identities and required assurance state, but EASL
+does not invent deployment-specific facts from those fields.
+
+A concrete `ExternalVerifier` must distinguish:
+
+- artifact identity/binding, such as a matching digest;
+- semantic provenance, such as the allowed builder/source/subject relation;
+- current-subject attestation, such as the exact host/boot/device/challenge
+  expected by the relying deployment;
+- proof/refinement evidence versus a claim of formal implementation proof.
+
+If the active deployment profile requires one of those facts and the concrete
+verifier cannot establish it, the verifier must return an error and bootstrap
+remains `GENESIS_LOCKED`.
+
+A hash-correct artifact is not, by itself, proof that the artifact's claimed
+semantics are true. Likewise, a prior signed attestation report is not,
+by itself, evidence about the current host unless the relying profile binds it
+to the current subject and freshness context.
+
+EASL deliberately keeps TPM/Linux/device identifiers out of the generic
+manifest schema. Those are deployment-specific inputs owned by the concrete
+external verifier.
+
 ## Reference verifier
 
 The Go package `genesis` implements the first fail-closed reference verifier. Local structural checks are combined with an `ExternalVerifier` interface for facts that cannot be proven from the JSON document alone: doctrine validity/current authority, authenticity, trust root, attestation, revocation, build provenance, spec/build binding, runtime default-deny state, and proof requirements.
