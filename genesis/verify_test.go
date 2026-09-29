@@ -214,6 +214,28 @@ func TestVerifyFailsClosedWhenDefaultDenyIsNotActive(t *testing.T) {
 	assertFailure(t, got, FailureDefaultDeny)
 }
 
+type unsupportedProofVerifier struct {
+	fakeVerifier
+}
+
+func (unsupportedProofVerifier) VerifyProofRequirements(context.Context, Manifest) error {
+	return errors.New("required semantic proof assurance is unsupported")
+}
+
+func TestVerifyFailsClosedWhenRequiredAssuranceIsExplicitlyUnsupported(t *testing.T) {
+	now := time.Date(2026, 9, 28, 3, 30, 0, 0, time.UTC)
+	m := validManifest(now)
+
+	got := Verify(
+		context.Background(),
+		m,
+		Context{Now: now},
+		unsupportedProofVerifier{},
+	)
+
+	assertFailure(t, got, FailureProofRequirements)
+}
+
 func TestVerifyFailsClosedWhenVerifierUnavailable(t *testing.T) {
 	now := time.Date(2026, 9, 28, 3, 30, 0, 0, time.UTC)
 	m := validManifest(now)
