@@ -53,6 +53,61 @@ func TestEvaluateStaleRequiredEvidenceInvalidates(t *testing.T) {
 	}
 }
 
+func TestEvaluateEvidenceExpiresAtBoundary(t *testing.T) {
+	now := time.Date(2026, 9, 27, 2, 45, 0, 0, time.UTC)
+	expires := now
+
+	got, err := evaluateSnapshot(Snapshot{
+		At: now,
+		Evidence: []Evidence{{
+			ID:         "health-check",
+			ObservedAt: now.Add(-time.Minute),
+			ExpiresAt:  &expires,
+		}},
+		Assumptions: []Assumption{{
+			ID:       "target-healthy",
+			Requires: []EvidenceID{"health-check"},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("evaluateSnapshot() error = %v", err)
+	}
+	if got.State != StateInvalid || got.EvidenceStatus != EvidenceInsufficient {
+		t.Fatalf("expected exact-expiry evidence to invalidate required assumption, got %+v", got)
+	}
+}
+
+func TestEvaluateRejectsFutureObservation(t *testing.T) {
+	now := time.Date(2026, 9, 27, 2, 45, 0, 0, time.UTC)
+	_, err := evaluateSnapshot(Snapshot{
+		At: now,
+		Evidence: []Evidence{{
+			ID:         "future-check",
+			ObservedAt: now.Add(time.Second),
+		}},
+	})
+	if err == nil {
+		t.Fatal("expected future observation error")
+	}
+}
+
+func TestEvaluateAcceptsObservationAtEvaluationInstant(t *testing.T) {
+	now := time.Date(2026, 9, 27, 2, 45, 0, 0, time.UTC)
+	got, err := evaluateSnapshot(Snapshot{
+		At: now,
+		Evidence: []Evidence{{
+			ID:         "current-check",
+			ObservedAt: now,
+		}},
+	})
+	if err != nil {
+		t.Fatalf("evaluateSnapshot() error = %v", err)
+	}
+	if got.State != StateValid {
+		t.Fatalf("expected observation at evaluation instant to remain valid, got %+v", got)
+	}
+}
+
 func TestEvaluateContradictionWins(t *testing.T) {
 	now := time.Date(2026, 9, 27, 1, 45, 0, 0, time.UTC)
 

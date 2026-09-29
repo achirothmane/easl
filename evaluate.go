@@ -24,6 +24,12 @@ func evaluateSnapshot(s Snapshot) (Evaluation, error) {
 		if e.ID == "" {
 			return Evaluation{}, fmt.Errorf("easl: empty evidence id")
 		}
+		if e.ObservedAt.IsZero() {
+			return Evaluation{}, fmt.Errorf("easl: evidence %q has zero observed_at", e.ID)
+		}
+		if e.ObservedAt.After(s.At) {
+			return Evaluation{}, fmt.Errorf("easl: evidence %q is observed in the future", e.ID)
+		}
 		if _, ok := evidence[e.ID]; ok {
 			return Evaluation{}, fmt.Errorf("easl: duplicate evidence id %q", e.ID)
 		}
